@@ -40,6 +40,7 @@
   --fs-pd-title:32px; --fs-pd-price:32px; --fs-pd-info:16px; --fs-pd-btn:20px;
   --fs-ci-title:20px; --fs-ci-price:20px; --fs-ci-qty:20px;
   --fs-delivery:20px; --fs-total:24px;
+  --fs-label:14px; --fs-input:18px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -141,6 +142,28 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
 .total{margin-top:40px;height:30px;line-height:30px;text-align:center;font-size:var(--fs-total);font-weight:var(--fw-b);color:var(--gray);white-space:nowrap}
 .total b{color:#000;font-weight:var(--fw-b)}
 .empty{margin-top:40px;height:22px;line-height:22px;font-size:var(--fs-ci-title);color:var(--gray)}
+
+/* ---------- CHECKOUT (ввод данных) ---------- */
+.co-total{margin-top:40px;height:30px;line-height:30px;font-size:var(--fs-total);font-weight:var(--fw-b);color:var(--gray);white-space:nowrap}
+.co-total b{color:#000;font-weight:var(--fw-b)}
+.fgrp{margin-top:20px}
+.co-total+.fgrp{margin-top:40px}
+.flb{height:16px;line-height:16px;padding-left:25px;font-size:var(--fs-label);font-weight:var(--fw-b);color:var(--gray);white-space:nowrap}
+.fld{position:relative;margin-top:6px;height:55px;border:1px solid #000;border-radius:27.5px;background:#fff}
+.fld input{position:absolute;left:0;top:0;width:100%;height:100%;border:0;outline:0;margin:0;background:transparent;border-radius:27.5px;
+  padding:0 14px 0 24px;font-family:inherit;font-size:var(--fs-input);font-weight:var(--fw-b);color:#000;caret-color:#000;
+  -webkit-appearance:none;appearance:none;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent calc(100% - 14px));
+  mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent calc(100% - 14px))}
+.fld input.ph{padding-left:52px}
+.fld input.un{padding-left:49px}
+.fld .pfx{position:absolute;left:24px;top:0;height:53px;line-height:53px;font-size:var(--fs-input);font-weight:var(--fw-b);color:var(--gray);pointer-events:none}
+.agree{position:relative;display:flex;align-items:flex-start;min-height:20px;margin-top:20px;cursor:pointer}
+.agree input{position:absolute;opacity:0;width:0;height:0;margin:0}
+.agree .cb{flex:none;width:20px;height:20px;border:1px solid #000;border-radius:6px;background:#fff}
+.agree input:checked+.cb{background:#000}
+.agree .tx{margin-left:10px;line-height:20px;font-size:var(--fs-label);font-weight:var(--fw-b);color:var(--gray)}
+.agree .tx a{color:inherit}
 </style>
 </head>
 <body>
@@ -180,10 +203,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
   var tg = window.Telegram && window.Telegram.WebApp;
   var cart = {};
   var tab = 'new';
+  var form = {address:'', name:'', phone:'', username:'', agree:false};   // phone — только 10 цифр после +7
+  var CONSENT_URL = '';   // TODO: ссылка на страницу «Согласие на обработку ПД» — когда появится, текст у галочки станет ссылкой
+  var POLICY_URL  = '';   // TODO: ссылка на политику конфиденциальности
   try { cart = JSON.parse(localStorage.getItem('dizard_cart') || '{}') || {}; } catch(e){ cart = {}; }
   function save(){ try { localStorage.setItem('dizard_cart', JSON.stringify(cart)); } catch(e){} }
 
   function byId(id){ for (var i=0;i<PRODUCTS.length;i++) if (PRODUCTS[i].id===id) return PRODUCTS[i]; return null; }
+  function esc(x){ return String(x).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function fmtPhone(d){ d=d.slice(0,10); var o=d.slice(0,3); if(d.length>3)o+=' '+d.slice(3,6); if(d.length>6)o+=' '+d.slice(6,8); if(d.length>8)o+=' '+d.slice(8,10); return o; }
   function money(n){ return n + '\u00A0₽'; }
   function goods(){ var s=0; for (var id in cart){ var p=byId(id); if(p) s+=p.price*cart[id]; } return s; }
   function haptic(){ try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred('light'); } catch(e){} }
@@ -276,9 +304,28 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
           '<div class="hr"></div>' +
           '<div class="total">К оплате: <b>'+money(goods()+DELIVERY)+'</b></div>' +
         '</div>' +
-        '<button class="pill big mt40" data-act="pay">Оплатить</button>';
+        '<button class="pill big mt40" data-act="tocheckout">К оформлению</button>';
     }
     return body + '<div class="spacer" style="min-height:137px"></div>' + footer();
+  }
+
+  function viewCheckout(){
+    var linkTx = 'Согласие на обработку персональных данных';
+    if (CONSENT_URL) linkTx = '<a href="'+CONSENT_URL+'" target="_blank" rel="noopener">'+linkTx+'</a>';
+    return '<div class="px">' +
+        '<div class="co-total">К оплате: <b>'+money(goods()+DELIVERY)+'</b></div>' +
+        '<div class="fgrp"><div class="flb">Адрес получателя</div>' +
+          '<div class="fld"><input data-f="address" type="text" autocomplete="street-address" value="'+esc(form.address)+'"></div></div>' +
+        '<div class="fgrp"><div class="flb">ФИО получателя</div>' +
+          '<div class="fld"><input data-f="name" type="text" autocomplete="name" value="'+esc(form.name)+'"></div></div>' +
+        '<div class="fgrp"><div class="flb">Контактный номер телефона</div>' +
+          '<div class="fld"><span class="pfx">+7</span><input class="ph" data-f="phone" type="tel" inputmode="numeric" autocomplete="tel-national" value="'+fmtPhone(form.phone)+'"></div></div>' +
+        '<div class="fgrp"><div class="flb">Username в Telegram</div>' +
+          '<div class="fld"><span class="pfx">@</span><input class="un" data-f="username" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(form.username)+'"></div></div>' +
+        '<label class="agree"><input type="checkbox" data-f="agree"'+(form.agree?' checked':'')+'><span class="cb"></span><span class="tx">'+linkTx+'</span></label>' +
+      '</div>' +
+      '<button class="pill big mt40" data-act="pay">Оплатить</button>' +
+      '<div class="spacer" style="min-height:85px"></div>' + footer();
   }
 
   /* ================= РОУТИНГ ================= */
@@ -286,17 +333,22 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
     var h = (location.hash || '#/').replace(/^#/, '');
     var m = h.match(/^\/product\/([\w-]+)/);
     if (m) return {name:'product', id:m[1]};
+    if (h.indexOf('/checkout')===0) return {name:'checkout'};
     if (h.indexOf('/cart')===0) return {name:'cart'};
     return {name:'main'};
   }
 
   function render(){
     var r = route(), html;
+    if (r.name==='checkout' && !Object.keys(cart).some(function(id){ return byId(id); })){ location.hash = '#/cart'; return; }
     if (r.name==='product') html = viewProduct(r.id);
     else if (r.name==='cart') html = viewCart();
+    else if (r.name==='checkout') html = viewCheckout();
     else html = viewMain();
     document.getElementById('view').innerHTML = html;
-    document.getElementById('hsum').innerHTML = money(goods());
+    // в шапке: на главной и в карточке — сумма товаров, в корзине и при оформлении — итог с доставкой (как в макете)
+    var g = goods(), shown = (r.name==='cart' || r.name==='checkout') ? (g>0 ? g+DELIVERY : 0) : g;
+    document.getElementById('hsum').innerHTML = money(shown);
     try {
       if (tg && tg.BackButton) { r.name==='main' ? tg.BackButton.hide() : tg.BackButton.show(); }
     } catch(e){}
@@ -312,9 +364,28 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
     else if (act==='inc'){ setQty(id, (cart[id]||0)+1); haptic(); }
     else if (act==='dec'){ setQty(id, (cart[id]||0)-1); haptic(); }
     else if (act==='tab'){ tab = id; render(); }
-    else if (act==='pay'){ checkout(); }
+    else if (act==='tocheckout'){ location.hash = '#/checkout'; }
+    else if (act==='pay'){ pay(); }
     else if (act==='bundle'){ /* TODO: действие кнопки «Купить» на баннере */ }
     else if (act==='menu'){ /* TODO: действие бургер-меню */ }
+  });
+
+  document.addEventListener('input', function(e){
+    var t = e.target, f = t.getAttribute && t.getAttribute('data-f'); if (!f || f==='agree') return;
+    if (f==='phone'){
+      var d = t.value.replace(/\D/g,'');
+      if (d.length>10 && (d.charAt(0)==='7' || d.charAt(0)==='8')) d = d.slice(1);
+      form.phone = d.slice(0,10);
+      t.value = fmtPhone(form.phone);
+    } else if (f==='username'){
+      form.username = t.value.replace(/^@+/,'').replace(/[^A-Za-z0-9_]/g,'');
+      if (t.value !== form.username) t.value = form.username;
+    } else {
+      form[f] = t.value;
+    }
+  });
+  document.addEventListener('change', function(e){
+    var t = e.target; if (t.getAttribute && t.getAttribute('data-f')==='agree') form.agree = t.checked;
   });
 
   var ORDER_CHAT = 'AlesKinski';   // TODO: когда подключишь ЮKassa — заменить на переход к оплате
@@ -325,16 +396,27 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
       var p = byId(id); if (!p) return;
       lines.push('• ' + p.title + ' × ' + cart[id] + ' — ' + (p.price*cart[id]) + ' ₽');
     });
-    lines.push('', 'Доставка: ' + DELIVERY + ' ₽', 'К оплате: ' + (goods()+DELIVERY) + ' ₽');
-    try {
-      var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-      if (u && u.username) lines.push('', 'Telegram: @' + u.username);
-    } catch(e){}
+    lines.push('', 'Доставка: ' + DELIVERY + ' ₽', 'К оплате: ' + (goods()+DELIVERY) + ' ₽', '');
+    lines.push('Получатель: ' + form.name.trim());
+    lines.push('Телефон: +7 ' + fmtPhone(form.phone));
+    lines.push('Адрес: ' + form.address.trim());
+    if (form.username) lines.push('Telegram: @' + form.username);
+    lines.push('Согласие на обработку персональных данных: дано');
     return lines.join('\n');
   }
 
-  function checkout(){
+  function warn(msg, field){
+    if (tg && tg.showAlert){ try { tg.showAlert(msg); } catch(e){ alert(msg); } } else { alert(msg); }
+    var el = field && document.querySelector('[data-f="'+field+'"]');
+    if (el && el.focus && field!=='agree') { try { el.focus(); } catch(e){} }
+  }
+
+  function pay(){
     if (!Object.keys(cart).length) return;
+    if (!form.address.trim()) return warn('Укажите адрес получателя', 'address');
+    if (form.name.trim().split(/\s+/).length < 2) return warn('Укажите ФИО получателя полностью', 'name');
+    if (form.phone.length !== 10) return warn('Введите номер телефона полностью', 'phone');
+    if (!form.agree) return warn('Нужно согласие на обработку персональных данных', 'agree');
     var url = 'https://t.me/' + ORDER_CHAT + '?text=' + encodeURIComponent(orderText());
     if (tg && tg.openTelegramLink){ try { tg.openTelegramLink(url); return; } catch(e){} }
     window.open(url, '_blank');
@@ -343,6 +425,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
   /* ================= TELEGRAM ================= */
   if (tg){
     try { tg.ready(); tg.expand(); } catch(e){}
+    try { var u = tg.initDataUnsafe && tg.initDataUnsafe.user; if (u && u.username && !form.username) form.username = u.username; } catch(e){}
     try { tg.setHeaderColor('#ffffff'); tg.setBackgroundColor('#ffffff'); } catch(e){}
     try { tg.BackButton.onClick(function(){ history.length>1 ? history.back() : (location.hash='#/'); }); } catch(e){}
   }
