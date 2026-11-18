@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>DIZARD</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* ============ ШРИФТ: Tilda Sans ============
+   Положи файлы шрифта в Dizard/fonts/ с такими именами (woff2 / woff / ttf — любой формат из этих).
+   Если файла нет, браузер молча возьмёт запасной шрифт, и размеры текста поплывут. */
+@font-face{font-family:'Tilda Sans';font-weight:400;font-style:normal;font-display:swap;
+  src:local('Tilda Sans'),local('TildaSans-Regular'),
+      url('Dizard/fonts/TildaSans-Regular.woff2') format('woff2'),
+      url('Dizard/fonts/TildaSans-Regular.woff') format('woff'),
+      url('Dizard/fonts/TildaSans-Regular.ttf') format('truetype');}
+@font-face{font-family:'Tilda Sans';font-weight:600;font-style:normal;font-display:swap;
+  src:local('Tilda Sans Semibold'),local('TildaSans-Semibold'),
+      url('Dizard/fonts/TildaSans-Semibold.woff2') format('woff2'),
+      url('Dizard/fonts/TildaSans-Semibold.woff') format('woff'),
+      url('Dizard/fonts/TildaSans-Semibold.ttf') format('truetype');}
+@font-face{font-family:'Tilda Sans';font-weight:700;font-style:normal;font-display:swap;
+  src:local('Tilda Sans Bold'),local('TildaSans-Bold'),
+      url('Dizard/fonts/TildaSans-Bold.woff2') format('woff2'),
+      url('Dizard/fonts/TildaSans-Bold.woff') format('woff'),
+      url('Dizard/fonts/TildaSans-Bold.ttf') format('truetype');}
+
+:root{
+  --top:75px;            /* пустое место над шапкой в макете */
+  --black:#000;
+  --gray:#777;           /* серый из макета (119,119,119) */
+  --fw-b:600;            /* жирное начертание: 600 или 700 — подставь по макету */
+  /* размеры шрифтов (оценены по высоте/ширине текста в макете, сверь с панелью Typography в Figma) */
+  --fs-hdr:16px;  --fs-tab:16px;  --fs-card-title:16px; --fs-card-price:13px; --fs-card-btn:10px;
+  --fs-banner-btn:15px; --fs-foot:10px;
+  --fs-pd-title:32px; --fs-pd-price:32px; --fs-pd-info:16px; --fs-pd-btn:20px;
+  --fs-ci-title:20px; --fs-ci-price:20px; --fs-ci-qty:20px;
+  --fs-delivery:20px; --fs-total:24px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  font-family:'Tilda Sans','Montserrat','Helvetica Neue',Arial,sans-serif;
+  font-weight:400;color:var(--black);background:#fff;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  -webkit-tap-highlight-color:transparent;
+  overflow-x:hidden;
+}
+img{display:block;border:0}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.hit{position:relative}
+.hit::after{content:"";position:absolute;inset:-10px}
+
+/* на десктопе — мобильная колонка 390px по центру */
+@media (min-width:391px){
+  body{background:#ececec}
+  #app{box-shadow:0 0 40px rgba(0,0,0,.08)}
+}
+#app{width:100%;max-width:390px;min-height:100vh;min-height:100dvh;margin:0 auto;background:#fff;display:flex;flex-direction:column;position:relative}
+.px{padding-left:25px;padding-right:25px}
+
+/* ---------- шапка (46px, от y=75) ---------- */
+.hdr{position:relative;height:46px;margin-top:var(--top);flex:none}
+.hdr .logo{position:absolute;left:25px;top:0;width:135px;height:46px}
+.hdr .logo img{width:135px;height:46px}
+.hdr .sum{position:absolute;right:105px;top:28px;height:20px;line-height:20px;font-size:var(--fs-hdr);white-space:nowrap}
+.hdr .bag{position:absolute;right:75px;top:25px;width:20px;height:20px}
+.hdr .bag img{width:20px;height:20px}
+.hdr .menu{position:absolute;right:25px;top:28px;width:20px;height:14px}
+.hdr .menu img{width:20px;height:14px}
+
+.view{flex:1;display:flex;flex-direction:column}
+.spacer{flex:1 0 auto}
+
+/* ---------- футер ---------- */
+.ft{flex:none;padding-bottom:25px}
+.ft .l1{height:12px;line-height:12px;font-size:var(--fs-foot);font-weight:var(--fw-b);color:var(--gray)}
+.ft .l2{height:12px;line-height:12px;margin-top:10px;font-size:var(--fs-foot);color:var(--gray)}
+.ft img{width:53px;height:15px;margin-top:4px}
+
+/* ---------- кнопки-«пилюли» ---------- */
+.pill{display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-weight:var(--fw-b)}
+
+/* ---------- MAIN ---------- */
+.banner{position:relative;margin-top:40px;line-height:0}
+.banner>img{width:100%;height:auto}
+.banner .buy{position:absolute;right:25px;bottom:23px;width:98px;height:32px;border-radius:16px;background:#fff;color:#000;
+  font-size:var(--fs-banner-btn);font-weight:var(--fw-b);line-height:32px;text-align:center}
+.tabs{margin-top:29px;height:20px;display:flex;justify-content:space-between}
+.tabs button{height:20px;line-height:20px;font-size:var(--fs-tab);color:var(--gray);white-space:nowrap;text-align:left}
+.tabs button.on{color:#000}
+.grid{margin-top:29px;display:grid;grid-template-columns:1fr 1fr;column-gap:20px;row-gap:30px;align-items:start}
+.card .pic{display:block;width:100%;aspect-ratio:1/1;border-radius:4px;overflow:hidden;background:#000}
+.card .pic img{width:100%;height:100%;object-fit:cover}
+.card .ttl{display:block;margin-top:15px;height:20px;line-height:20px;font-size:var(--fs-card-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .prc{margin-top:2px;height:16px;line-height:16px;font-size:var(--fs-card-price);color:var(--gray)}
+.card .act{margin-top:9px;height:30px}
+.card .add{height:30px;width:105px;border-radius:15px;font-size:var(--fs-card-btn)}
+.stp{width:118px;height:30px;border-radius:15px;padding:0 15px;justify-content:space-between;font-size:var(--fs-card-btn)}
+.stp .mi{width:15px;height:3px;border-radius:1.5px;background:#fff;flex:none}
+.stp .pl{position:relative;width:15px;height:15px;flex:none}
+.stp .pl::before,.stp .pl::after{content:"";position:absolute;background:#fff;border-radius:1.5px}
+.stp .pl::before{left:6px;top:0;width:3px;height:15px}
+.stp .pl::after{left:0;top:6px;width:15px;height:3px}
+.stp .qt{white-space:nowrap}
+
+/* ---------- PRODUCT ---------- */
+.pd-img{position:relative;margin-top:40px;width:100%;aspect-ratio:1/1;border-radius:4px;overflow:hidden;background:#000}
+.pd-img img{width:100%;height:100%;object-fit:cover}
+.dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px}
+.dots i{width:6px;height:6px;border-radius:50%;background:#848484}
+.dots i.on{background:#fff}
+.pd-ttl{margin-top:19px;height:40px;line-height:40px;font-size:var(--fs-pd-title);white-space:nowrap}
+.pd-prc{margin-top:6px;height:40px;line-height:40px;font-size:var(--fs-pd-price);white-space:nowrap}
+.pd-info{margin-top:8px}
+.pd-info+.pd-info{margin-top:4px}
+.pd-info .k,.pd-info .v{display:block;height:18px;line-height:18px;font-size:var(--fs-pd-info);white-space:nowrap}
+.pd-info .k{color:var(--gray)}
+.big{height:55px;border-radius:27.5px;margin:30px 58px 0;font-size:var(--fs-pd-btn);width:auto}
+.big.mt40{margin-top:40px}
+
+/* ---------- CART ---------- */
+.rows{margin-top:40px;display:flex;flex-direction:column;gap:20px}
+.row{position:relative;height:70px;padding-left:90px}
+.row .th{position:absolute;left:0;top:0;width:70px;height:70px;border-radius:4px;overflow:hidden;background:#000}
+.row .th img{width:100%;height:100%;object-fit:cover}
+.row .nm{position:absolute;left:90px;top:0;height:22px;line-height:22px;font-size:var(--fs-ci-title);white-space:nowrap}
+.row .pr{position:absolute;left:90px;top:35px;height:22px;line-height:22px;font-size:var(--fs-ci-price);font-weight:var(--fw-b);white-space:nowrap}
+.row .qty{position:absolute;right:0;top:1px;height:22px;line-height:22px;font-size:var(--fs-ci-qty);color:var(--gray);white-space:nowrap}
+.row .mn{position:absolute;right:42px;top:61px;width:17px;height:3px}
+.row .mn img{width:17px;height:3px}
+.row .pl{position:absolute;right:0;top:53px;width:17px;height:17px}
+.row .pl img{width:17px;height:17px}
+.deliv{margin-top:41px;height:22px;line-height:22px;font-size:var(--fs-delivery);font-weight:var(--fw-b)}
+.hr{margin-top:41px;height:2px;background:var(--gray)}
+.total{margin-top:40px;height:30px;line-height:30px;text-align:center;font-size:var(--fs-total);font-weight:var(--fw-b);color:var(--gray);white-space:nowrap}
+.total b{color:#000;font-weight:var(--fw-b)}
+.empty{margin-top:40px;height:22px;line-height:22px;font-size:var(--fs-ci-title);color:var(--gray)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="hdr">
+    <a class="logo" href="#/" aria-label="DIZARD"><img src="Dizard/DIZARD_LOGO.svg" alt="DIZARD"></a>
+    <a class="sum hit" href="#/cart" id="hsum">0&nbsp;₽</a>
+    <a class="bag hit" href="#/cart" aria-label="Корзина"><img src="Dizard/Korzina.svg" alt=""></a>
+    <button class="menu hit" data-act="menu" aria-label="Меню"><img src="Dizard/menu.svg" alt=""></button>
+  </header>
+  <div class="view" id="view"></div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= ДАННЫЕ ================= */
+  var DELIVERY = 300;
+  var IMG = 'Dizard/';
+  var PRODUCTS = [
+    {id:'krest',  cat:'pendants', title:'Подвеска GOTHIC', price:590, img:'krest.png',
+     size:'35 × 20 мм, цепь 50 см', material:'Эпоксидная смола, Медицинская сталь'},
+    {id:'keycap', cat:'keycaps',  title:'Кейкап GOTHIC',   price:790, img:'keycap.png',
+     size:'18 × 18 × 12 мм', material:'Эпоксидная смола'},   // TODO: размер придуман, замени на реальный
+    {id:'y2k',    cat:'pendants', title:'Подвеска Y2K',    price:490, img:'y2k.png',
+     size:'30 × 30 мм, цепь 50 см', material:'Эпоксидная смола, Медицинская сталь'}    // TODO: размер придуман, состав взят как у GOTHIC — проверь
+  ];
+  var TABS = [
+    {id:'new',      label:'Новинки'},
+    {id:'pendants', label:'Подвески'},
+    {id:'rings',    label:'Кольца'},
+    {id:'keycaps',  label:'Кейкапы'}
+  ];
+
+  /* ================= СОСТОЯНИЕ ================= */
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var cart = {};
+  var tab = 'new';
+  try { cart = JSON.parse(localStorage.getItem('dizard_cart') || '{}') || {}; } catch(e){ cart = {}; }
+  function save(){ try { localStorage.setItem('dizard_cart', JSON.stringify(cart)); } catch(e){} }
+
+  function byId(id){ for (var i=0;i<PRODUCTS.length;i++) if (PRODUCTS[i].id===id) return PRODUCTS[i]; return null; }
+  function money(n){ return n + '\u00A0₽'; }
+  function goods(){ var s=0; for (var id in cart){ var p=byId(id); if(p) s+=p.price*cart[id]; } return s; }
+  function haptic(){ try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred('light'); } catch(e){} }
+
+  function setQty(id, q){
+    if (q<=0) delete cart[id]; else cart[id]=q;
+    save(); render();
+  }
+
+  /* ================= ШАБЛОНЫ ================= */
+  function footer(){
+    return '<footer class="ft px">' +
+      '<div class="l1">© 2026 DIZARD. All rights reserved.</div>' +
+      '<div class="l2">Designed by UYOUT</div>' +
+      '<img src="'+IMG+'Design_logo_futer.svg" alt="">' +
+    '</footer>';
+  }
+
+  function cardAction(p){
+    var q = cart[p.id] || 0;
+    if (q>0){
+      return '<div class="pill stp">' +
+        '<button class="hit mi" data-act="dec" data-id="'+p.id+'" aria-label="Меньше"></button>' +
+        '<span class="qt">'+q+' шт</span>' +
+        '<button class="hit pl" data-act="inc" data-id="'+p.id+'" aria-label="Больше"></button>' +
+      '</div>';
+    }
+    return '<button class="pill add" data-act="add" data-id="'+p.id+'">В корзину</button>';
+  }
+
+  function viewMain(){
+    var list = PRODUCTS.filter(function(p){ return tab==='new' || p.cat===tab; });
+    var tabs = TABS.map(function(t){
+      return '<button data-act="tab" data-id="'+t.id+'"'+(t.id===tab?' class="on"':'')+'>'+t.label+'</button>';
+    }).join('');
+    var cards = list.map(function(p){
+      return '<div class="card">' +
+        '<a class="pic" href="#/product/'+p.id+'"><img src="'+IMG+p.img+'" alt=""></a>' +
+        '<a class="ttl" href="#/product/'+p.id+'">'+p.title+'</a>' +
+        '<div class="prc">'+money(p.price)+'</div>' +
+        '<div class="act">'+cardAction(p)+'</div>' +
+      '</div>';
+    }).join('');
+    return '<section class="banner">' +
+        '<img src="'+IMG+'banner1.png" alt="">' +
+        '<button class="buy" data-act="bundle">Купить</button>' +
+      '</section>' +
+      '<nav class="tabs px">'+tabs+'</nav>' +
+      '<div class="grid px">'+cards+'</div>' +
+      '<div class="spacer" style="min-height:50px"></div>' + footer();
+  }
+
+  function viewProduct(id){
+    var p = byId(id);
+    if (!p) return viewMain();
+    var info = '';
+    if (p.size)     info += '<div class="pd-info px"><span class="k">Размер:</span><span class="v">'+p.size+'</span></div>';
+    if (p.material) info += '<div class="pd-info px"><span class="k">Состав:</span><span class="v">'+p.material+'</span></div>';
+    return '<div class="px">' +
+        '<div class="pd-img"><img src="'+IMG+p.img+'" alt="">' +
+          '<div class="dots"><i class="on"></i><i></i></div></div>' +
+        '<div class="pd-ttl">'+p.title+'</div>' +
+        '<div class="pd-prc">'+money(p.price)+'</div>' +
+      '</div>' +
+      info +
+      '<button class="pill big" data-act="add" data-id="'+p.id+'">В корзину</button>' +
+      '<div class="spacer" style="min-height:104px"></div>' + footer();
+  }
+
+  function viewCart(){
+    var ids = Object.keys(cart).filter(function(id){ return byId(id); });
+    var body;
+    if (!ids.length){
+      body = '<div class="px"><div class="empty">Корзина пуста</div></div>';
+    } else {
+      var rows = ids.map(function(id){
+        var p = byId(id), q = cart[id];
+        return '<div class="row">' +
+          '<div class="th"><img src="'+IMG+p.img+'" alt=""></div>' +
+          '<div class="nm">'+p.title+'</div>' +
+          '<div class="pr">'+money(p.price*q)+'</div>' +
+          '<div class="qty">'+q+' шт</div>' +
+          '<button class="mn hit" data-act="dec" data-id="'+id+'" aria-label="Меньше"><img src="'+IMG+'minus_korzina.svg" alt=""></button>' +
+          '<button class="pl hit" data-act="inc" data-id="'+id+'" aria-label="Больше"><img src="'+IMG+'Plus_korzina.svg" alt=""></button>' +
+        '</div>';
+      }).join('');
+      body = '<div class="px">' +
+          '<div class="rows">'+rows+'</div>' +
+          '<div class="deliv">Доставка: '+money(DELIVERY)+'</div>' +
+          '<div class="hr"></div>' +
+          '<div class="total">К оплате: <b>'+money(goods()+DELIVERY)+'</b></div>' +
+        '</div>' +
+        '<button class="pill big mt40" data-act="pay">Оплатить</button>';
+    }
+    return body + '<div class="spacer" style="min-height:137px"></div>' + footer();
+  }
+
+  /* ================= РОУТИНГ ================= */
+  function route(){
+    var h = (location.hash || '#/').replace(/^#/, '');
+    var m = h.match(/^\/product\/([\w-]+)/);
+    if (m) return {name:'product', id:m[1]};
+    if (h.indexOf('/cart')===0) return {name:'cart'};
+    return {name:'main'};
+  }
+
+  function render(){
+    var r = route(), html;
+    if (r.name==='product') html = viewProduct(r.id);
+    else if (r.name==='cart') html = viewCart();
+    else html = viewMain();
+    document.getElementById('view').innerHTML = html;
+    document.getElementById('hsum').innerHTML = money(goods());
+    try {
+      if (tg && tg.BackButton) { r.name==='main' ? tg.BackButton.hide() : tg.BackButton.show(); }
+    } catch(e){}
+  }
+
+  window.addEventListener('hashchange', function(){ render(); window.scrollTo(0,0); });
+
+  /* ================= СОБЫТИЯ ================= */
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-act]'); if (!t) return;
+    var act = t.getAttribute('data-act'), id = t.getAttribute('data-id');
+    if (act==='add'){ setQty(id, (cart[id]||0)+1); haptic(); }
+    else if (act==='inc'){ setQty(id, (cart[id]||0)+1); haptic(); }
+    else if (act==='dec'){ setQty(id, (cart[id]||0)-1); haptic(); }
+    else if (act==='tab'){ tab = id; render(); }
+    else if (act==='pay'){ checkout(); }
+    else if (act==='bundle'){ /* TODO: действие кнопки «Купить» на баннере */ }
+    else if (act==='menu'){ /* TODO: действие бургер-меню */ }
+  });
+
+  var ORDER_CHAT = 'AlesKinski';   // TODO: когда подключишь ЮKassa — заменить на переход к оплате
+
+  function orderText(){
+    var lines = ['Здравствуйте! Хочу оформить заказ:', ''];
+    Object.keys(cart).forEach(function(id){
+      var p = byId(id); if (!p) return;
+      lines.push('• ' + p.title + ' × ' + cart[id] + ' — ' + (p.price*cart[id]) + ' ₽');
+    });
+    lines.push('', 'Доставка: ' + DELIVERY + ' ₽', 'К оплате: ' + (goods()+DELIVERY) + ' ₽');
+    try {
+      var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+      if (u && u.username) lines.push('', 'Telegram: @' + u.username);
+    } catch(e){}
+    return lines.join('\n');
+  }
+
+  function checkout(){
+    if (!Object.keys(cart).length) return;
+    var url = 'https://t.me/' + ORDER_CHAT + '?text=' + encodeURIComponent(orderText());
+    if (tg && tg.openTelegramLink){ try { tg.openTelegramLink(url); return; } catch(e){} }
+    window.open(url, '_blank');
+  }
+
+  /* ================= TELEGRAM ================= */
+  if (tg){
+    try { tg.ready(); tg.expand(); } catch(e){}
+    try { tg.setHeaderColor('#ffffff'); tg.setBackgroundColor('#ffffff'); } catch(e){}
+    try { tg.BackButton.onClick(function(){ history.length>1 ? history.back() : (location.hash='#/'); }); } catch(e){}
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
