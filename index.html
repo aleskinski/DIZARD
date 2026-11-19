@@ -7,24 +7,10 @@
 <title>DIZARD</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ============ ШРИФТ: Tilda Sans ============
-   Положи файлы шрифта в Dizard/fonts/ с такими именами (woff2 / woff / ttf — любой формат из этих).
-   Если файла нет, браузер молча возьмёт запасной шрифт, и размеры текста поплывут. */
-@font-face{font-family:'Tilda Sans';font-weight:400;font-style:normal;font-display:swap;
-  src:local('Tilda Sans'),local('TildaSans-Regular'),
-      url('Dizard/fonts/TildaSans-Regular.woff2') format('woff2'),
-      url('Dizard/fonts/TildaSans-Regular.woff') format('woff'),
-      url('Dizard/fonts/TildaSans-Regular.ttf') format('truetype');}
-@font-face{font-family:'Tilda Sans';font-weight:600;font-style:normal;font-display:swap;
-  src:local('Tilda Sans Semibold'),local('TildaSans-Semibold'),
-      url('Dizard/fonts/TildaSans-Semibold.woff2') format('woff2'),
-      url('Dizard/fonts/TildaSans-Semibold.woff') format('woff'),
-      url('Dizard/fonts/TildaSans-Semibold.ttf') format('truetype');}
-@font-face{font-family:'Tilda Sans';font-weight:700;font-style:normal;font-display:swap;
-  src:local('Tilda Sans Bold'),local('TildaSans-Bold'),
-      url('Dizard/fonts/TildaSans-Bold.woff2') format('woff2'),
-      url('Dizard/fonts/TildaSans-Bold.woff') format('woff'),
-      url('Dizard/fonts/TildaSans-Bold.ttf') format('truetype');}
+/* ============ ШРИФТ: Tilda Sans (вариативный, оси wght 250–900) ============
+   Один файл покрывает все начертания: 400, 600, 700 и т.д. Исходники — в source/fonts/. */
+@font-face{font-family:'Tilda Sans';font-weight:250 900;font-style:normal;font-display:swap;
+  src:url('Dizard/fonts/TildaSans-VF.woff2') format('woff2');}
 
 :root{
   /* Отступ сверху: в обычном режиме Телеграм сам рисует свою плашку, поэтому здесь 0.
@@ -124,6 +110,29 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
 .pd-info .k{color:var(--gray)}
 .big{height:55px;border-radius:27.5px;margin:30px 58px 0;font-size:var(--fs-pd-btn);width:auto}
 .big.mt40{margin-top:40px}
+/* степпер на экране товара (product_fill): пилюля 274×55, знаки 17px, отступ от края 30px */
+.stpb{padding:0;justify-content:space-between}
+.stpb button{position:relative;flex:none;width:75px;height:55px}
+.stpb button::before,.stpb button::after{content:"";position:absolute;background:#fff;border-radius:1.5px}
+.stpb .mi::before{left:30px;top:26px;width:17px;height:3px}
+.stpb .pl::before{right:30px;top:26px;width:17px;height:3px}
+.stpb .pl::after{right:37px;top:19px;width:3px;height:17px}
+.stpb .qt{white-space:nowrap}
+
+/* ---------- плавающая корзина (main, когда корзина в шапке ушла за экран) ----------
+   Glass из Figma: Fill FFFFFF 20%, radius 50, 113×40. Refraction/Dispersion в CSS не воспроизвести —
+   это приближение: полупрозрачная заливка + лёгкий blur + внутренняя тень по левому/верхнему краю. */
+.fab{position:fixed;z-index:20;bottom:calc(25px + env(safe-area-inset-bottom,0px));
+  right:max(25px,calc((100vw - 390px)/2 + 25px));
+  display:flex;align-items:center;justify-content:center;gap:10px;height:40px;min-width:113px;padding:0 19px;border-radius:20px;
+  font-size:var(--fs-hdr);line-height:40px;white-space:nowrap;
+  background:rgba(255,255,255,.2);
+  -webkit-backdrop-filter:blur(2px) saturate(1.6);backdrop-filter:blur(2px) saturate(1.6);
+  box-shadow:inset 3px 3px 9px -3px rgba(0,0,0,.07),inset -2px -2px 6px -2px rgba(255,255,255,.9);
+  opacity:0;visibility:hidden;transform:translateY(8px);
+  transition:opacity .2s ease,transform .2s ease,visibility 0s linear .2s}
+.fab.on{opacity:1;visibility:visible;transform:none;transition:opacity .2s ease,transform .2s ease}
+.fab img{width:20px;height:20px;flex:none}
 
 /* ---------- CART ---------- */
 .rows{margin-top:40px;display:flex;flex-direction:column;gap:20px}
@@ -161,7 +170,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
 .agree{position:relative;display:flex;align-items:flex-start;min-height:20px;margin-top:20px;cursor:pointer}
 .agree input{position:absolute;opacity:0;width:0;height:0;margin:0}
 .agree .cb{flex:none;width:20px;height:20px;border:1px solid #000;border-radius:6px;background:#fff}
-.agree input:checked+.cb{background:#000}
+.agree input:checked+.cb{background:#000 url('Dizard/approve.svg') center/10px 10px no-repeat}
 .agree .tx{margin-left:10px;line-height:20px;font-size:var(--fs-label);font-weight:var(--fw-b);color:var(--gray)}
 .agree .tx a{color:inherit}
 </style>
@@ -176,6 +185,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
   </header>
   <div class="view" id="view"></div>
 </div>
+<a class="fab" id="fab" href="#/cart" aria-label="Корзина"><span id="fsum">0&nbsp;₽</span><img src="Dizard/Korzina.svg" alt=""></a>
 
 <script>
 (function(){
@@ -185,11 +195,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
   var DELIVERY = 300;
   var IMG = 'Dizard/';
   var PRODUCTS = [
-    {id:'krest',  cat:'pendants', title:'Подвеска GOTHIC', price:590, img:'krest.png',
+    {id:'krest',  cat:'pendants', title:'Подвеска GOTHIC', price:590, img:'krest.webp',
      size:'35 × 20 мм, цепь 50 см', material:'Эпоксидная смола, Медицинская сталь'},
-    {id:'keycap', cat:'keycaps',  title:'Кейкап GOTHIC',   price:790, img:'keycap.png',
+    {id:'keycap', cat:'keycaps',  title:'Кейкап GOTHIC',   price:790, img:'keycap.webp',
      size:'18 × 18 × 12 мм', material:'Эпоксидная смола'},   // TODO: размер придуман, замени на реальный
-    {id:'y2k',    cat:'pendants', title:'Подвеска Y2K',    price:490, img:'y2k.png',
+    {id:'y2k',    cat:'pendants', title:'Подвеска Y2K',    price:490, img:'y2k.webp',
      size:'30 × 30 мм, цепь 50 см', material:'Эпоксидная смола, Медицинская сталь'}    // TODO: размер придуман, состав взят как у GOTHIC — проверь
   ];
   var TABS = [
@@ -256,12 +266,24 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
       '</div>';
     }).join('');
     return '<section class="banner">' +
-        '<img src="'+IMG+'banner1.png" alt="">' +
+        '<img src="'+IMG+'banner1.webp" alt="">' +
         '<button class="buy" data-act="bundle">Купить</button>' +
       '</section>' +
       '<nav class="tabs px">'+tabs+'</nav>' +
       '<div class="grid px">'+cards+'</div>' +
       '<div class="spacer" style="min-height:50px"></div>' + footer();
+  }
+
+  function productAction(p){
+    var q = cart[p.id] || 0;
+    if (q>0){
+      return '<div class="pill big stpb">' +
+        '<button class="mi" data-act="dec" data-id="'+p.id+'" aria-label="Меньше"></button>' +
+        '<span class="qt">'+q+' шт</span>' +
+        '<button class="pl" data-act="inc" data-id="'+p.id+'" aria-label="Больше"></button>' +
+      '</div>';
+    }
+    return '<button class="pill big" data-act="add" data-id="'+p.id+'">В корзину</button>';
   }
 
   function viewProduct(id){
@@ -277,7 +299,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
         '<div class="pd-prc">'+money(p.price)+'</div>' +
       '</div>' +
       info +
-      '<button class="pill big" data-act="add" data-id="'+p.id+'">В корзину</button>' +
+      productAction(p) +
       '<div class="spacer" style="min-height:104px"></div>' + footer();
   }
 
@@ -349,9 +371,23 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
     // в шапке: на главной и в карточке — сумма товаров, в корзине и при оформлении — итог с доставкой (как в макете)
     var g = goods(), shown = (r.name==='cart' || r.name==='checkout') ? (g>0 ? g+DELIVERY : 0) : g;
     document.getElementById('hsum').innerHTML = money(shown);
+    document.getElementById('fsum').innerHTML = money(shown);
+    updateFab();
     try {
       if (tg && tg.BackButton) { r.name==='main' ? tg.BackButton.hide() : tg.BackButton.show(); }
     } catch(e){}
+  }
+
+  /* плавающая корзина: только на main, и только когда корзина в шапке ушла за экран */
+  var bagInView = true;
+  function updateFab(){
+    var fab = document.getElementById('fab');
+    if (fab) fab.classList.toggle('on', route().name==='main' && !bagInView);
+  }
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(function(en){
+      bagInView = en[en.length-1].isIntersecting; updateFab();
+    }).observe(document.querySelector('.hdr .bag'));
   }
 
   window.addEventListener('hashchange', function(){ render(); window.scrollTo(0,0); });
